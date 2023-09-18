@@ -71,8 +71,7 @@ class DFTSystem():
         atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
-        mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
-        return mol
+        return Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
 
 
 class DFTEntry():
@@ -94,11 +93,7 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self,
-               e_type: str,
-               true_val: Optional[str],
-               systems: List[Dict],
-               weight: Optional[int] = 1):
+    def create(cls, e_type: str, true_val: Optional[str], systems: List[Dict], weight: Optional[int] = 1):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -135,14 +130,14 @@ class DFTEntry():
             true_val = '0.0'
         if e_type == "ae":
             return _EntryAE(e_type, true_val, systems, weight)
-        elif e_type == "ie":
-            return _EntryIE(e_type, true_val, systems, weight)
-        elif e_type == "dm":
-            return _EntryDM(e_type, true_val, systems, weight)
         elif e_type == "dens":
             return _EntryDens(e_type, true_val, systems, weight)
+        elif e_type == "dm":
+            return _EntryDM(e_type, true_val, systems, weight)
+        elif e_type == "ie":
+            return _EntryIE(e_type, true_val, systems, weight)
         else:
-            raise NotImplementedError("Unknown entry type: %s" % e_type)
+            raise NotImplementedError(f"Unknown entry type: {e_type}")
 
     def __init__(self,
                  e_type: str,
@@ -235,9 +230,7 @@ class _EntryDM(DFTEntry):
         return "dm"
 
     def get_true_val(self) -> np.ndarray:
-        # get the density matrix from PySCF's CCSD calculation
-        dm = np.load(self.true_val)
-        return dm
+        return np.load(self.true_val)
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         val = qcs[0].aodmtot()
@@ -269,8 +262,7 @@ class _EntryDens(DFTEntry):
         return "dens"
 
     def get_true_val(self) -> np.ndarray:
-        dens = np.load(self.true_val)
-        return dens
+        return np.load(self.true_val)
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """

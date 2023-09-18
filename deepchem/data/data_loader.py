@@ -202,7 +202,7 @@ class DataLoader(object):
             from `inputs`.
         """
         logger.info("Loading raw samples now.")
-        logger.info("shard_size: %s" % str(shard_size))
+        logger.info(f"shard_size: {str(shard_size)}")
 
         # Special case handling of single input
         if not isinstance(inputs, list):
@@ -373,10 +373,7 @@ class CSVLoader(DataLoader):
         self.tasks = tasks
         self.feature_field = feature_field
         self.id_field = id_field
-        if id_field is None:
-            self.id_field = feature_field  # Use features as unique ids if necessary
-        else:
-            self.id_field = id_field
+        self.id_field = feature_field if id_field is None else id_field
         self.user_specified_features = None
         if isinstance(featurizer, UserDefinedFeaturizer):
             self.user_specified_features = featurizer.feature_fields
@@ -422,7 +419,7 @@ class CSVLoader(DataLoader):
             raise ValueError(
                 "featurizer must be specified in constructor to featurizer data/"
             )
-        features = [elt for elt in self.featurizer(shard[self.feature_field])]
+        features = list(self.featurizer(shard[self.feature_field]))
         valid_inds = np.array(
             [1 if np.array(elt).size > 0 else 0 for elt in features],
             dtype=bool)
@@ -716,7 +713,7 @@ class JsonLoader(DataLoader):
             raise ValueError(
                 "featurizer must be specified in constructor to featurizer data/"
             )
-        features = [elt for elt in self.featurizer(shard[self.feature_field])]
+        features = list(self.featurizer(shard[self.feature_field]))
         valid_inds = np.array(
             [1 if np.array(elt).size > 0 else 0 for elt in features],
             dtype=bool)
@@ -796,7 +793,7 @@ class SDFLoader(DataLoader):
             from `inputs`.
         """
         logger.info("Loading raw samples now.")
-        logger.info("shard_size: %s" % str(shard_size))
+        logger.info(f"shard_size: {str(shard_size)}")
 
         # Special case handling of single input
         if not isinstance(inputs, list):
@@ -894,14 +891,16 @@ class SDFLoader(DataLoader):
         """
         pos_cols = ['pos_x', 'pos_y', 'pos_z']
         if set(pos_cols).issubset(shard.columns):
-            features = [
-                elt for elt in self.featurizer(shard[self.mol_field],
-                                               pos_x=shard['pos_x'],
-                                               pos_y=shard['pos_y'],
-                                               pos_z=shard['pos_z'])
-            ]
+            features = list(
+                self.featurizer(
+                    shard[self.mol_field],
+                    pos_x=shard['pos_x'],
+                    pos_y=shard['pos_y'],
+                    pos_z=shard['pos_z'],
+                )
+            )
         else:
-            features = [elt for elt in self.featurizer(shard[self.mol_field])]
+            features = list(self.featurizer(shard[self.mol_field]))
         valid_inds = np.array(
             [1 if np.array(elt).size > 0 else 0 for elt in features],
             dtype=bool)
@@ -1045,7 +1044,7 @@ class FASTALoader(DataLoader):
                         sequence = np.array([])
                     elif header_read:  # Line contains sequence in FASTA format
                         if line[-1:] == '\n':  # Check last character in string
-                            line = line[0:-1]  # Remove last character
+                            line = line[:-1]
                         sequence = np.append(sequence, line)
                 sequences = _add_sequence(sequences,
                                           sequence)  # Add last sequence
@@ -1088,7 +1087,7 @@ def _fastq_load_files(input_files: List[str],
     """
     shard_num = 0
     for input_file in input_files:
-        logger.info("About to start loading fastq from %s." % input_file)
+        logger.info(f"About to start loading fastq from {input_file}.")
         # Open index file
         with open(input_file, 'r') as f:
             # create an empty list to store lines in files.
@@ -1271,10 +1270,7 @@ class FASTQLoader(DataLoader):
                         quality_scores,
                         np.array([each_sequence[3].strip("\n")]))
 
-            if self.return_quality_scores:
-                return sequences, quality_scores
-            else:
-                return sequences
+            return (sequences, quality_scores) if self.return_quality_scores else sequences
 
         def _add_sequence(sequences: np.ndarray,
                           sequence: np.ndarray) -> np.ndarray:
@@ -1355,9 +1351,7 @@ class ImageLoader(DataLoader):
         labels, weights = None, None
         if isinstance(inputs, tuple):
             if len(inputs) == 1:
-                input_files = inputs[0]
-                if isinstance(inputs, str):
-                    input_files = [inputs]
+                input_files = [inputs] if isinstance(inputs, str) else inputs[0]
             elif len(inputs) == 2:
                 input_files, labels = inputs
             elif len(inputs) == 3:
@@ -1406,27 +1400,25 @@ class ImageLoader(DataLoader):
         # Sort image files
         image_files = sorted(image_files)
 
-        if in_memory:
-            if data_dir is None:
-                return NumpyDataset(load_image_files(image_files),
-                                    y=labels,
-                                    w=weights,
-                                    ids=image_files)
-            else:
-                dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                                 y=labels,
-                                                 w=weights,
-                                                 ids=image_files,
-                                                 tasks=self.tasks,
-                                                 data_dir=data_dir)
-                if shard_size is not None:
-                    dataset.reshard(shard_size)
-                return dataset
-        else:
+        if not in_memory:
             return ImageDataset(image_files,
                                 y=labels,
                                 w=weights,
                                 ids=image_files)
+        if data_dir is None:
+            return NumpyDataset(load_image_files(image_files),
+                                y=labels,
+                                w=weights,
+                                ids=image_files)
+        dataset = DiskDataset.from_numpy(load_image_files(image_files),
+                                         y=labels,
+                                         w=weights,
+                                         ids=image_files,
+                                         tasks=self.tasks,
+                                         data_dir=data_dir)
+        if shard_size is not None:
+            dataset.reshard(shard_size)
+        return dataset
 
 
 class InMemoryLoader(DataLoader):
@@ -1512,7 +1504,7 @@ class InMemoryLoader(DataLoader):
             from `inputs`.
         """
         logger.info("Loading raw samples now.")
-        logger.info("shard_size: %s" % str(shard_size))
+        logger.info(f"shard_size: {str(shard_size)}")
 
         if not isinstance(inputs, list):
             try:
@@ -1734,10 +1726,7 @@ class DFTYamlLoader(DataLoader):
         """
         try:
             e_type = shard['e_type']
-            if 'true_val' in shard.keys():
-                true_val = shard['true_val']
-            else:
-                true_val = '0.0'
+            true_val = shard['true_val'] if 'true_val' in shard.keys() else '0.0'
             systems = shard['systems']
         except KeyError:
             raise ValueError(

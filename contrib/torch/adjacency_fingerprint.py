@@ -65,9 +65,7 @@ def get_atom_type(atom):
     return (19)
   if elem == 35:
     return (20)
-  if elem == 53:
-    return (21)
-  return (22)
+  return 21 if elem == 53 else 22
 
 
 def get_atom_adj_matrices(mol,
