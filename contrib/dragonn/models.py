@@ -372,7 +372,7 @@ class gkmSVM(Model):
 
   @property
   def model_file(self):
-    model_fname = '{}.model.txt'.format(self.prefix)
+    model_fname = f'{self.prefix}.model.txt'
     return model_fname if os.path.isfile(model_fname) else None
 
   @staticmethod
@@ -381,7 +381,7 @@ class gkmSVM(Model):
         """
     with open(ofname, "w") as wf:
       for i, seq in enumerate(sequence_iterator):
-        print('>{}'.format(i), file=wf)
+        print(f'>{i}', file=wf)
         print(seq, file=wf)
 
   def train(self, X, y, validation_data=None):
@@ -391,8 +391,8 @@ class gkmSVM(Model):
     y = y.squeeze()
     pos_sequence = X[y]
     neg_sequence = X[~y]
-    pos_fname = "%s.pos_seq.fa" % self.prefix
-    neg_fname = "%s.neg_seq.fa" % self.prefix
+    pos_fname = f"{self.prefix}.pos_seq.fa"
+    neg_fname = f"{self.prefix}.neg_seq.fa"
     # create temporary fasta files
     self.encode_sequence_into_fasta_file(pos_sequence, pos_fname)
     self.encode_sequence_into_fasta_file(neg_sequence, neg_fname)
@@ -402,24 +402,24 @@ class gkmSVM(Model):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     process.wait()  # wait for it to finish
     # remove fasta files
-    os.system("rm %s" % pos_fname)
-    os.system("rm %s" % neg_fname)
+    os.system(f"rm {pos_fname}")
+    os.system(f"rm {neg_fname}")
 
   def predict(self, X):
     if self.model_file is None:
       raise RuntimeError("GkmSvm hasn't been trained!")
     # write test fasta file
-    test_fname = "%s.test.fa" % self.prefix
+    test_fname = f"{self.prefix}.test.fa"
     self.encode_sequence_into_fasta_file(X, test_fname)
     # test gkmsvm
     temp_ofp = tempfile.NamedTemporaryFile()
-    threads_option = '-T %s' % (str(self.threads))
+    threads_option = f'-T {str(self.threads)}'
     command = ' '.join([
         'gkmpredict', test_fname, self.model_file, temp_ofp.name, threads_option
     ])
     process = subprocess.Popen(command, shell=True)
     process.wait()  # wait for it to finish
-    os.system("rm %s" % test_fname)  # remove fasta file
+    os.system(f"rm {test_fname}")
     # get classification results
     temp_ofp.seek(0)
     y = np.array([line.split()[-1] for line in temp_ofp], dtype=float)

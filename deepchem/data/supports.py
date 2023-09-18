@@ -289,8 +289,9 @@ class EpisodeGenerator(object):
         self.task_num = 0
         self.trial_num = 0
         time_end = time.time()
-        logger.info("Constructing EpisodeGenerator took %s seconds" %
-                    str(time_end - time_start))
+        logger.info(
+            f"Constructing EpisodeGenerator took {str(time_end - time_start)} seconds"
+        )
 
     def __iter__(self):
         return self
@@ -302,21 +303,20 @@ class EpisodeGenerator(object):
         """
         if self.trial_num == self.n_episodes_per_task:
             raise StopIteration
-        else:
-            task = self.perm_tasks[self.task_num]  # Get id from permutation
-            # support = self.supports[task][self.trial_num]
-            task_supports, task_tests = self.task_episodes[task]
-            support, test = (task_supports[self.trial_num],
-                             task_tests[self.trial_num])
-            # Increment and update logic
-            self.task_num += 1
-            if self.task_num == self.n_tasks:
-                self.task_num = 0  # Reset
-                self.perm_tasks = np.random.permutation(
-                    self.tasks)  # Permute again
-                self.trial_num += 1  # Upgrade trial index
+        task = self.perm_tasks[self.task_num]  # Get id from permutation
+        # support = self.supports[task][self.trial_num]
+        task_supports, task_tests = self.task_episodes[task]
+        support, test = (task_supports[self.trial_num],
+                         task_tests[self.trial_num])
+        # Increment and update logic
+        self.task_num += 1
+        if self.task_num == self.n_tasks:
+            self.task_num = 0  # Reset
+            self.perm_tasks = np.random.permutation(
+                self.tasks)  # Permute again
+            self.trial_num += 1  # Upgrade trial index
 
-            return (task, support, test)
+        return (task, support, test)
 
     __next__ = next  # Python 3.X compatibility
 
@@ -367,22 +367,21 @@ class SupportGenerator(object):
         """
         if self.trial_num == self.n_trials:
             raise StopIteration
-        else:
-            task = self.perm_tasks[self.task_num]  # Get id from permutation
-            # support = self.supports[task][self.trial_num]
-            support = get_single_task_support(self.dataset,
-                                              n_pos=self.n_pos,
-                                              n_neg=self.n_neg,
-                                              task=task,
-                                              replace=False)
-            # Increment and update logic
-            self.task_num += 1
-            if self.task_num == self.n_tasks:
-                self.task_num = 0  # Reset
-                self.perm_tasks = np.random.permutation(
-                    self.tasks)  # Permute again
-                self.trial_num += 1  # Upgrade trial index
+        task = self.perm_tasks[self.task_num]  # Get id from permutation
+        # support = self.supports[task][self.trial_num]
+        support = get_single_task_support(self.dataset,
+                                          n_pos=self.n_pos,
+                                          n_neg=self.n_neg,
+                                          task=task,
+                                          replace=False)
+        # Increment and update logic
+        self.task_num += 1
+        if self.task_num == self.n_tasks:
+            self.task_num = 0  # Reset
+            self.perm_tasks = np.random.permutation(
+                self.tasks)  # Permute again
+            self.trial_num += 1  # Upgrade trial index
 
-            return (task, support)
+        return (task, support)
 
     __next__ = next  # Python 3.X compatibility

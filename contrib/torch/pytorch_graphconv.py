@@ -335,7 +335,7 @@ class MultiTaskGraphConvolution(object):
 
     def multitask_loss(self, output, label_v):
         losses = []
-        
+
         for task in range(self.n_tasks):
             #print("tasK: %d" %task)
             scores = output[:,task].contiguous().view((-1,1))
@@ -352,8 +352,7 @@ class MultiTaskGraphConvolution(object):
             losses.append(task_loss)
             #print("task_loss")
             #print(task_loss.size())
-        loss = torch.cat(losses).mean()
-        return(loss)
+        return torch.cat(losses).mean()
 
 
     def train_epoch(self, train_features, y_train, batch_size=32,
